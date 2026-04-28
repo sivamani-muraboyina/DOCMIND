@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+uploads/
+*.faiss
+*.pkl
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.DS_Store
