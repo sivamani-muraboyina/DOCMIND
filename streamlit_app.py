@@ -1,5 +1,5 @@
 """
-DocMind — Standalone Streamlit app (no separate backend needed).
+DocMind — Standalone Streamlit app (no separate backend needed).II for streamlit deployment pupose ;l
 All RAG logic is embedded directly.
 """
 from __future__ import annotations
@@ -67,9 +67,16 @@ def load_reranker():
     from sentence_transformers import CrossEncoder
     return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
 
-# ── In-memory stores ──────────────────────────────────────────────────────────
-_faiss_store: Dict[str, dict] = {}
-_bm25_store:  Dict[str, dict] = {}
+# ── In-memory stores (session_state so they survive Streamlit reruns) ──────────
+def _get_faiss_store() -> dict:
+    if "faiss_store" not in st.session_state:
+        st.session_state.faiss_store = {}
+    return st.session_state.faiss_store
+
+def _get_bm25_store() -> dict:
+    if "bm25_store" not in st.session_state:
+        st.session_state.bm25_store = {}
+    return st.session_state.bm25_store
 
 # ── FAISS ─────────────────────────────────────────────────────────────────────
 def build_faiss_index(session_id: str, chunks: List[Chunk]) -> int:
@@ -79,12 +86,14 @@ def build_faiss_index(session_id: str, chunks: List[Chunk]) -> int:
     dim        = embeddings.shape[1]
     index      = faiss.IndexFlatIP(dim)
     index.add(embeddings)
-    _faiss_store[session_id] = {"index": index, "chunks": chunks}
+    _get_faiss_store()[session_id] = {"index": index, "chunks": chunks}
     return index.ntotal
 
 def search_faiss(session_id: str, query: str, top_k: int = 10) -> List[Tuple[Chunk, float]]:
-    import faiss
-    entry  = _faiss_store[session_id]
+    store  = _get_faiss_store()
+    if session_id not in store:
+        return []
+    entry  = store[session_id]
     index  = entry["index"]
     chunks = entry["chunks"]
     q_vec  = embed_query(query)
@@ -104,14 +113,17 @@ def build_bm25_index(session_id: str, chunks: List[Chunk]) -> int:
     if not pairs:
         return 0
     tokens_list, valid_chunks = zip(*pairs)
-    _bm25_store[session_id] = {
+    _get_bm25_store()[session_id] = {
         "bm25":   BM25Okapi(list(tokens_list)),
         "chunks": list(valid_chunks),
     }
     return len(valid_chunks)
 
 def search_bm25(session_id: str, query: str, top_k: int = 10) -> List[Tuple[Chunk, float]]:
-    entry  = _bm25_store[session_id]
+    store  = _get_bm25_store()
+    if session_id not in store:
+        return []
+    entry  = store[session_id]
     bm25   = entry["bm25"]
     chunks = entry["chunks"]
     qtoks  = _tokenize(query)
