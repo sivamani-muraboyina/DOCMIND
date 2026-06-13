@@ -7,6 +7,26 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35-red)
 ![LangChain](https://img.shields.io/badge/LangChain-0.2-yellow)
 ![Groq](https://img.shields.io/badge/LLM-Groq%20LLaMA%203.1-orange)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit-FF4B4B?style=flat)](https://docmind-by-siva.streamlit.app)
+
+---
+
+## 🚀 Live Demo
+
+**[https://docmind-by-siva.streamlit.app](https://docmind-by-siva.streamlit.app)**
+
+> No setup needed — upload any PDF and start chatting instantly.
+
+---
+
+## 👔 For Recruiters — Try It in 60 Seconds
+
+1. Open **[https://docmind-by-siva.streamlit.app](https://docmind-by-siva.streamlit.app)**
+2. Upload any PDF (a resume, research paper, report — anything)
+3. Ask questions like *"Summarize the key points"* or *"What is the CGPA?"*
+4. See how the app retrieves exact chunks with page citations and answers precisely
+
+> **What this demonstrates:** end-to-end LLM application development — PDF parsing, vector indexing, hybrid retrieval, reranking, prompt engineering, and deployment. Built and deployed solo.
 
 ---
 
@@ -143,6 +163,7 @@ DOCMIND/
 │   ├── query_flow.svg
 │   ├── screenshot_home.png
 │   └── screenshot_chat.png
+├── streamlit_app.py                # Standalone deployment (no backend needed)
 ├── hf_app.py                       # Hugging Face Spaces entry point
 ├── requirements.txt
 ├── Dockerfile
@@ -204,3 +225,11 @@ DOCMIND/
 - [Hugging Face](https://huggingface.co) for embedding and reranker models
 - [Streamlit](https://streamlit.io) for the UI framework
 - [FAISS](https://github.com/facebookresearch/faiss) by Meta AI for vector search
+
+---
+
+## 📬 Contact
+
+**Sivamani Muraboyina**
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sivamani-muraboyina-5873b52a7/)
+[![Email](https://img.shields.io/badge/Email-D14836?style=flat&logo=gmail&logoColor=white)](mailto:sivamani.m23@iiits.in)
