@@ -6,6 +6,9 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from loguru import logger
 
+from dotenv import load_dotenv
+load_dotenv()
+
 SYSTEM_TEMPLATE = """\
 You are a precise document analyst. Answer questions ONLY from the context below.
 

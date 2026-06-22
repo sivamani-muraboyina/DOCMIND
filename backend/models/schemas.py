@@ -61,3 +61,26 @@ class HealthResponse(BaseModel):
     status:          str = "ok"
     version:         str = "1.0.0"
     active_sessions: int = 0
+
+## for mode -2
+class LegalRetrievedChunk(BaseModel):
+    content:          str
+    source:           str               # file_path, e.g. "cuad/ABILITYINC_..._SERVICES_AGREEMENT.txt"
+    char_start:       int
+    char_end:         int
+    score:            float
+    retrieval_method: str
+
+
+class AskLegalRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    top_k:    int = Field(default=5, ge=1, le=20)
+    use_hnsw: bool = Field(default=False, description="True = HNSW index, False = Flat index — for benchmarking")
+
+
+class AskLegalResponse(BaseModel):
+    answer:           str
+    question:         str
+    retrieved_chunks: List[LegalRetrievedChunk]
+    model_used:       str
+    index_used:       str  # "flat" or "hnsw" — confirms which index actually served this request

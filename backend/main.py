@@ -17,6 +17,8 @@ from backend.services.embeddings import load_embedding_model
 from backend.services.retriever import load_reranker
 from backend.services.vector_store import get_active_sessions
 
+from backend.routers import chat, upload, legal
+from backend.services.legal_corpus import initialize_legal_corpus
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +26,7 @@ async def lifespan(app: FastAPI):
     logger.info("Pre-loading models...")
     load_embedding_model()
     load_reranker()
+    initialize_legal_corpus()
     logger.info("Models ready — API is live.")
     yield
     logger.info("Shutting down.")
@@ -60,6 +63,7 @@ async def catch_all(request: Request, exc: Exception):
 
 app.include_router(upload.router)
 app.include_router(chat.router)
+app.include_router(legal.router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
