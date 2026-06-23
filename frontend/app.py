@@ -5,9 +5,10 @@ Run with:
     streamlit run frontend/app.py
 """
 import requests
+import os
 import streamlit as st
 
-BACKEND = "http://localhost:8000"
+BACKEND = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.set_page_config(
     page_title="DocMind",
