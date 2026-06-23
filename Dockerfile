@@ -4,7 +4,7 @@ WORKDIR /app
 
 # System deps for PyMuPDF, pdfplumber, faiss-cpu (OpenMP)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 libgl1-mesa-glx libgomp1 \
+    libglib2.0-0 libgl1 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -19,7 +19,6 @@ COPY . .
 RUN mkdir -p /app/uploads /app/data/raw/corpus/cuad /app/data/legal_index \
     && chmod -R 777 /app/uploads /app/data
 
-# Render injects $PORT — Streamlit gets it, FastAPI stays internal on 8000
 EXPOSE 10000
 
 CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port 8000 & streamlit run frontend/app.py --server.port ${PORT:-10000} --server.address 0.0.0.0 --server.headless true"]
