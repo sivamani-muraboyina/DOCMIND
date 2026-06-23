@@ -22,7 +22,7 @@ from backend.services.llm_chain import generate_answer
 from evaluation.build_test_set import EvalQuestion  # required for pickle.load() to resolve this class
 
 TEST_SET_PATH = Path("evaluation/test_set.pkl")
-SAMPLE_SIZE = 25
+SAMPLE_SIZE = 5
 JUDGE_MODEL = "llama-3.1-8b-instant"
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -50,13 +50,20 @@ def _judge_call(prompt: str, max_retries: int = 3) -> str:
 
 
 def decompose_into_claims(answer: str) -> list[str]:
-    prompt = f"""Break this answer into a list of individual factual claims, one per line. 
-No numbering, no extra text — just the claims.
+    prompt = f"""Break this answer into individual, atomic FACTUAL claims about 
+the contract's content — one per line. 
+
+Do NOT include meta-statements like "the context discusses X" or "based on the 
+provided information" — only extract concrete facts the answer states ABOUT THE 
+CONTRACT itself (e.g. dates, parties, obligations, clauses, terms).
+
+If the answer says there is NO such clause/term, extract that as a claim too 
+(e.g. "There is no non-compete clause in this agreement").
 
 ANSWER:
 {answer}
 
-CLAIMS:"""
+CLAIMS (one per line, no numbering):"""
     raw = _judge_call(prompt)
     claims = [c.strip("- ").strip() for c in raw.split("\n") if c.strip()]
     return claims

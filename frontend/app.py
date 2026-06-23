@@ -25,6 +25,7 @@ def _init():
         "doc_meta":    {},
         "messages":    [],
         "ready":       False,
+        "legal_messages": [],
     }.items():
         st.session_state.setdefault(k, v)
 
@@ -83,6 +84,27 @@ def api_ask(question: str) -> dict | None:
         st.error(f"Error: {e}")
     return None
 
+def api_ask_legal(question: str, use_hnsw: bool = False, top_k: int = 5) -> dict | None:
+    try:
+        r = requests.post(
+            f"{BACKEND}/ask-legal/",
+            json={
+                "question": question,
+                "top_k":    top_k,
+                "use_hnsw": use_hnsw,
+            },
+            timeout=120,
+        )
+        if r.status_code == 200:
+            return r.json()
+        st.error(f"Error: {r.json().get('detail', r.status_code)}")
+    except requests.Timeout:
+        st.error("Request timed out — the LLM may be slow, try again.")
+    except requests.ConnectionError:
+        st.error("Lost connection to backend.")
+    except Exception as e:
+        st.error(f"Error: {e}")
+    return None
 
 # ── Render helpers ────────────────────────────────────────────────────────────
 def render_sources(sources: list):
@@ -191,54 +213,130 @@ st.title("🧠 DocMind")
 st.caption("Hybrid RAG · Dense + Sparse Retrieval · Cross-Encoder Reranking")
 st.divider()
 
-if not st.session_state.ready:
-    st.info("Upload a PDF from the sidebar to get started.", icon="📑")
-    col1, col2, col3 = st.columns(3)
-    col1.info("🔵 **FAISS Dense**\n\nSemantic similarity search over embedded chunks")
-    col2.warning("🟡 **BM25 Sparse**\n\nKeyword matching with TF-IDF-like scoring")
-    col3.success("⚡ **Cross-Encoder**\n\nReranks top candidates for maximum precision")
+tab1, tab2 = st.tabs(["📑 Upload & Query", "⚖️ Legal Corpus (CUAD)"])
 
-else:
-    render_stats()
-    st.divider()
+# ── TAB 1: Mode 1 — upload your own document ──────────────────────────────────
+with tab1:
+    if not st.session_state.ready:
+        st.info("Upload a PDF from the sidebar to get started.", icon="📑")
+        col1, col2, col3 = st.columns(3)
+        col1.info("🔵 **FAISS Dense**\n\nSemantic similarity search over embedded chunks")
+        col2.warning("🟡 **BM25 Sparse**\n\nKeyword matching with TF-IDF-like scoring")
+        col3.success("⚡ **Cross-Encoder**\n\nReranks top candidates for maximum precision")
 
-    if not st.session_state.messages:
-        st.info(f"Document ready. Ask anything about **{st.session_state.filename}**", icon="💬")
+    else:
+        render_stats()
+        st.divider()
+
+        if not st.session_state.messages:
+            st.info(f"Document ready. Ask anything about **{st.session_state.filename}**", icon="💬")
+            st.markdown("**Try asking:**")
+            suggestions = ["Summarize key points", "What are the main conclusions?", "List findings", "What method was used?"]
+            scols = st.columns(len(suggestions))
+            for col, sug in zip(scols, suggestions):
+                with col:
+                    if st.button(sug, use_container_width=True, key=f"sug_{sug}"):
+                        st.session_state.messages.append({"role": "user", "content": sug, "sources": []})
+                        with st.spinner("Thinking…"):
+                            res = api_ask(sug)
+                        if res:
+                            st.session_state.messages.append({
+                                "role":    "assistant",
+                                "content": res.get("answer", ""),
+                                "sources": res.get("retrieved_chunks", []),
+                            })
+                        st.rerun()
+        else:
+            render_messages()
+
+        user_q = st.chat_input("Ask a question about your document…", key="mode1_input")
+        if user_q and user_q.strip():
+            q = user_q.strip()
+            st.session_state.messages.append({"role": "user", "content": q, "sources": []})
+            with st.chat_message("user"):
+                st.write(q)
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking…"):
+                    res = api_ask(q)
+                if res:
+                    answer  = res.get("answer", "")
+                    sources = res.get("retrieved_chunks", [])
+                    st.write(answer)
+                    render_sources(sources)
+                    st.session_state.messages.append({
+                        "role":    "assistant",
+                        "content": answer,
+                        "sources": sources,
+                    })
+
+# ── TAB 2: Mode 2 — fixed legal corpus (CUAD) ─────────────────────────────────
+with tab2:
+    st.info("Pre-indexed corpus: **462 legal contracts** (CUAD / LegalBench-RAG), 46,620 chunks.", icon="⚖️")
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.caption("Ask a question about contract clauses, parties, terms, etc.")
+    with col2:
+        use_hnsw = st.toggle("Use HNSW index", value=False, help="Off = exact Flat search. On = approximate HNSW search.")
+
+    if st.session_state.legal_messages:
+        for m in st.session_state.legal_messages:
+            with st.chat_message(m["role"]):
+                st.write(m["content"])
+                if m["role"] == "assistant" and m.get("sources"):
+                    with st.expander(f"📎 {len(m['sources'])} retrieved chunks · index: {m.get('index_used','?')}"):
+                        for i, s in enumerate(m["sources"], 1):
+                            st.caption(f"#{i} · {s.get('source','doc')} · score {s.get('score',0):.4f} · [{s.get('retrieval_method','?')}]")
+                            st.text(s.get("content", "")[:420])
+                            if i < len(m["sources"]):
+                                st.divider()
+    else:
         st.markdown("**Try asking:**")
-        suggestions = ["Summarize key points", "What are the main conclusions?", "List findings", "What method was used?"]
-        scols = st.columns(len(suggestions))
-        for col, sug in zip(scols, suggestions):
+        legal_suggestions = [
+            "Is there a non-compete clause?",
+            "What is the termination notice period?",
+            "Does this agreement have an indemnification clause?",
+        ]
+        lcols = st.columns(len(legal_suggestions))
+        for col, sug in zip(lcols, legal_suggestions):
             with col:
-                if st.button(sug, use_container_width=True, key=f"sug_{sug}"):
-                    st.session_state.messages.append({"role": "user", "content": sug, "sources": []})
-                    with st.spinner("Thinking…"):
-                        res = api_ask(sug)
+                if st.button(sug, use_container_width=True, key=f"legal_sug_{sug}"):
+                    st.session_state.legal_messages.append({"role": "user", "content": sug})
+                    with st.spinner("Searching legal corpus…"):
+                        res = api_ask_legal(sug, use_hnsw=use_hnsw)
                     if res:
-                        st.session_state.messages.append({
-                            "role":    "assistant",
-                            "content": res.get("answer", ""),
-                            "sources": res.get("retrieved_chunks", []),
+                        st.session_state.legal_messages.append({
+                            "role":       "assistant",
+                            "content":    res.get("answer", ""),
+                            "sources":    res.get("retrieved_chunks", []),
+                            "index_used": res.get("index_used", "?"),
                         })
                     st.rerun()
-    else:
-        render_messages()
 
-    user_q = st.chat_input("Ask a question about your document…")
-    if user_q and user_q.strip():
-        q = user_q.strip()
-        st.session_state.messages.append({"role": "user", "content": q, "sources": []})
+    legal_q = st.chat_input("Ask a question about the legal corpus…", key="mode2_input")
+    if legal_q and legal_q.strip():
+        q = legal_q.strip()
+        st.session_state.legal_messages.append({"role": "user", "content": q})
         with st.chat_message("user"):
             st.write(q)
         with st.chat_message("assistant"):
-            with st.spinner("Thinking…"):
-                res = api_ask(q)
+            with st.spinner("Searching legal corpus…"):
+                res = api_ask_legal(q, use_hnsw=use_hnsw)
             if res:
                 answer  = res.get("answer", "")
                 sources = res.get("retrieved_chunks", [])
+                index_used = res.get("index_used", "?")
                 st.write(answer)
-                render_sources(sources)
-                st.session_state.messages.append({
-                    "role":    "assistant",
-                    "content": answer,
-                    "sources": sources,
+                st.caption(f"Index used: **{index_used}**")
+                with st.expander(f"📎 {len(sources)} retrieved chunks"):
+                    for i, s in enumerate(sources, 1):
+                        st.caption(f"#{i} · {s.get('source','doc')} · score {s.get('score',0):.4f} · [{s.get('retrieval_method','?')}]")
+                        st.text(s.get("content", "")[:420])
+                        if i < len(sources):
+                            st.divider()
+                st.session_state.legal_messages.append({
+                    "role":       "assistant",
+                    "content":    answer,
+                    "sources":    sources,
+                    "index_used": index_used,
                 })
