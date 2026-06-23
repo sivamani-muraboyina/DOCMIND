@@ -5,9 +5,9 @@ Run with:
     streamlit run frontend/app.py
 """
 import requests
-import os
 import streamlit as st
 
+import os
 BACKEND = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.set_page_config(
@@ -52,7 +52,7 @@ def api_upload(data: bytes, name: str) -> dict | None:
             return r.json()
         st.error(f"Upload failed: {r.json().get('detail', r.status_code)}")
     except requests.ConnectionError:
-        st.error("Cannot reach backend on port 8000.")
+        st.error("Cannot reach backend. Please check the service is running.")
     except Exception as e:
         st.error(f"Upload error: {e}")
     return None
@@ -150,7 +150,7 @@ with st.sidebar:
     if alive:
         st.success("API connected", icon="✅")
     else:
-        st.error("API offline — start the FastAPI backend on port 8000", icon="🔴")
+        st.error("API offline — backend service is not reachable", icon="🔴")
 
     st.markdown("#### 📂 Upload PDF")
     pdf = st.file_uploader("Drop your PDF here", type=["pdf"])
