@@ -12,22 +12,13 @@ from loguru import logger
 load_dotenv()
 
 from backend.models.schemas import HealthResponse
-from backend.routers import chat, upload
-from backend.services.embeddings import load_embedding_model
-from backend.services.retriever import load_reranker
-from backend.services.vector_store import get_active_sessions
-
 from backend.routers import chat, upload, legal
-from backend.services.legal_corpus import initialize_legal_corpus
+from backend.services.vector_store import get_active_sessions
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(os.getenv("UPLOAD_DIR", "./uploads")).mkdir(parents=True, exist_ok=True)
-    logger.info("Pre-loading models...")
-    load_embedding_model()
-    load_reranker()
-    initialize_legal_corpus()
-    logger.info("Models ready — API is live.")
+    logger.info("API starting — models will load lazily on first request.")
     yield
     logger.info("Shutting down.")
 
