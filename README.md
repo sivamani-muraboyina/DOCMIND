@@ -1,32 +1,42 @@
 # 🧠 DocMind — Hybrid RAG Document Chatbot
 
-> Upload any PDF and chat with it using state-of-the-art retrieval techniques powered by Groq LLaMA.
+> Two-mode intelligent document analysis — chat with any PDF or query a legal contract corpus using state-of-the-art hybrid retrieval powered by Groq LLaMA.
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-green)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35-red)
 ![LangChain](https://img.shields.io/badge/LangChain-0.2-yellow)
-![Groq](https://img.shields.io/badge/LLM-Groq%20LLaMA%203.1-orange)
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit-FF4B4B?style=flat)](https://docmind-by-siva.streamlit.app)
+![Groq](https://img.shields.io/badge/LLM-Groq%20LLaMA%203.1%208B-orange)
+[![Two-Mode Demo](https://img.shields.io/badge/🚀%20Full%20Demo%20(2%20Modes)-Render-46E3B7?style=flat)](https://docmind-by-siva.onrender.com)
+[![Single-Mode Demo](https://img.shields.io/badge/⚡%20Quick%20Demo%20(Doc%20Mode)-Streamlit-FF4B4B?style=flat)](https://docmind-by-siva.streamlit.app)
 
 ---
 
-## 🚀 Live Demo
+## 🚀 Live Demos
 
-**[https://docmind-by-siva.streamlit.app](https://docmind-by-siva.streamlit.app)**
+| Version | Link | Modes Available |
+|---|---|---|
+| **Full (Two-Mode)** | [https://docmind-by-siva.onrender.com](https://docmind-by-siva.onrender.com) | Document Q&A + Legal Contract Analysis |
+| **Quick Demo** | [https://docmind-by-siva.streamlit.app](https://docmind-by-siva.streamlit.app) | Document Q&A only |
 
-> No setup needed — upload any PDF and start chatting instantly.
+> ⚠️ Full demo hosted on Render free tier — may take ~30s to wake up on first load.
 
 ---
 
 ## 👔 For Recruiters — Try It in 60 Seconds
 
-1. Open **[https://docmind-by-siva.streamlit.app](https://docmind-by-siva.streamlit.app)**
-2. Upload any PDF (a resume, research paper, report — anything)
-3. Ask questions like *"Summarize the key points"* or *"What is the CGPA?"*
-4. See how the app retrieves exact chunks with page citations and answers precisely
+**Mode 1 — Document Q&A:**
+1. Open the [Full Demo](https://docmind-by-siva.onrender.com)
+2. Upload any PDF (resume, research paper, report)
+3. Ask *"Summarize the key points"* or *"What is the methodology?"*
+4. See hybrid retrieval return answers with page-level citations
 
-> **What this demonstrates:** end-to-end LLM application development — PDF parsing, vector indexing, hybrid retrieval, reranking, prompt engineering, and deployment. Built and deployed solo.
+**Mode 2 — Legal Contract Analysis:**
+1. Switch to **Legal Mode** in the sidebar
+2. Ask contract-related questions like *"What are the termination clauses?"* or *"Summarize indemnification obligations"*
+3. System queries a pre-indexed CUAD legal corpus — no upload needed
+
+> **What this demonstrates:** end-to-end LLM application development — PDF parsing, vector indexing, hybrid retrieval, reranking, multi-mode architecture, prompt engineering, and Docker deployment. Built and deployed solo.
 
 ---
 
@@ -42,13 +52,25 @@
 
 ## ✨ Features
 
-- 📄 **PDF Upload** — Upload any PDF up to 50MB
-- 🔍 **Hybrid Retrieval** — FAISS dense search + BM25 sparse search combined via Reciprocal Rank Fusion
-- ⚡ **Cross-Encoder Reranking** — ms-marco-MiniLM for maximum precision
-- 🤖 **Groq LLaMA 3.1** — Fast, accurate answers grounded strictly in your document
-- 🧠 **Smart Chunking** — Auto-classifies PDF as structured / unstructured / mixed and chunks accordingly
-- 💬 **Chat History** — Multi-turn conversation with memory (last 6 turns)
-- 📎 **Source Citations** — Every answer shows which chunks and pages were used
+### 📄 Mode 1 — Document Q&A
+- **PDF Upload** — Upload any PDF up to 50MB
+- **Adaptive Chunking** — Auto-classifies PDF as structured / unstructured / mixed
+- **Hybrid Retrieval** — FAISS dense search + BM25 sparse search via Reciprocal Rank Fusion
+- **Cross-Encoder Reranking** — ms-marco-MiniLM for maximum precision
+- **Source Citations** — Every answer cites exact chunks and page numbers
+- **Chat History** — Multi-turn conversation with memory (last 6 turns)
+
+### ⚖️ Mode 2 — Legal Contract Analysis
+- **Pre-indexed Corpus** — CUAD (Contract Understanding Atticus Dataset) indexed at startup
+- **Dual FAISS Index** — Flat (exact) + HNSW (approximate) for retrieval benchmarking
+- **Legal-aware Chunking** — Clause-boundary-respecting chunker for contract documents
+- **No Upload Needed** — Instant answers over the legal corpus out of the box
+
+### ⚡ Shared Infrastructure
+- **Groq LLaMA 3.1 8B Instant** — Fast, grounded answers strictly from retrieved context
+- **sentence-transformers all-MiniLM-L6-v2** — Embeddings for both modes
+- **FastAPI backend + Streamlit frontend** — Clean separation via REST API
+- **Docker deployment** — Single container, production-ready
 
 ---
 
@@ -143,28 +165,26 @@ DOCMIND/
 │   ├── models/
 │   │   └── schemas.py              # Pydantic request/response models
 │   ├── routers/
-│   │   ├── chat.py                 # POST /ask endpoint
-│   │   └── upload.py               # POST /upload endpoint
+│   │   ├── upload.py               # POST /upload endpoint
+│   │   ├── chat.py                 # POST /ask endpoint (Document mode)
+│   │   └── legal.py                # POST /ask-legal endpoint (Legal mode)
 │   ├── services/
 │   │   ├── llm_chain.py            # Groq LLaMA via LangChain
-│   │   ├── embeddings.py           # Sentence-transformers
-│   │   ├── vector_store.py         # FAISS in-memory index
-│   │   ├── bm25_store.py           # BM25 in-memory index
-│   │   ├── retriever.py            # Hybrid retrieval + reranking
-│   │   └── pdf_processor.py        # PDF text extraction
+│   │   ├── embeddings.py           # sentence-transformers (shared)
+│   │   ├── vector_store.py         # FAISS in-memory index (Document mode)
+│   │   ├── bm25_store.py           # BM25 in-memory index (Document mode)
+│   │   ├── retriever.py            # Hybrid retrieval + cross-encoder reranking
+│   │   ├── pdf_processor.py        # PDF text extraction
+│   │   └── legal_corpus.py         # CUAD corpus indexing + retrieval (Legal mode)
 │   └── utils/
-│       ├── chunker.py              # Adaptive chunking
-│       └── doc_classifier.py       # PDF type classification
+│       ├── chunker.py              # Adaptive chunking (Document mode)
+│       ├── doc_classifier.py       # PDF type classification
+│       └── legal_chunker.py        # Clause-aware chunking (Legal mode)
 ├── frontend/
-│   └── app.py                      # Streamlit UI
-├── docs/                           # ← put your diagrams + screenshots here
-│   ├── architecture.svg
-│   ├── upload_flow.svg
-│   ├── query_flow.svg
-│   ├── screenshot_home.png
-│   └── screenshot_chat.png
-├── streamlit_app.py                # Standalone deployment (no backend needed)
-├── hf_app.py                       # Hugging Face Spaces entry point
+│   └── app.py                      # Streamlit UI (two-mode switcher)
+├── data/
+│   └── raw/corpus/cuad/            # Legal corpus .txt files (not committed)
+├── docs/                           # Architecture diagrams + screenshots
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
@@ -196,7 +216,8 @@ DOCMIND/
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/upload/` | Upload and index a PDF — returns `session_id` |
-| `POST` | `/ask/` | Ask a question using `session_id` |
+| `POST` | `/ask/` | Ask a question in Document mode using `session_id` |
+| `POST` | `/ask-legal/` | Ask a question in Legal mode (no session needed) |
 | `GET` | `/health` | API status + active session count |
 | `GET` | `/docs` | Swagger UI |
 
@@ -208,13 +229,15 @@ DOCMIND/
 |---|---|
 | **LLM** | Groq — LLaMA 3.1 8B Instant |
 | **Embeddings** | sentence-transformers all-MiniLM-L6-v2 |
-| **Dense Search** | FAISS IndexFlatIP |
+| **Dense Search** | FAISS IndexFlatIP + HNSW |
 | **Sparse Search** | BM25 Okapi |
 | **Reranker** | cross-encoder ms-marco-MiniLM-L-6-v2 |
+| **Legal Corpus** | CUAD (Contract Understanding Atticus Dataset) |
 | **PDF Extraction** | pdfplumber + PyMuPDF |
 | **Backend** | FastAPI + Uvicorn |
 | **Frontend** | Streamlit |
 | **Orchestration** | LangChain |
+| **Deployment** | Docker on Render |
 
 ---
 
@@ -225,6 +248,7 @@ DOCMIND/
 - [Hugging Face](https://huggingface.co) for embedding and reranker models
 - [Streamlit](https://streamlit.io) for the UI framework
 - [FAISS](https://github.com/facebookresearch/faiss) by Meta AI for vector search
+- [CUAD](https://www.atticusprojectai.org/cuad) for the legal contract dataset
 
 ---
 
